@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { BookOpen, KeyRound, Mail } from 'lucide-react';
+import BASE_URL from '../../api';
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
@@ -20,7 +21,7 @@ export default function ForgotPassword() {
     setIsLoading(true);
 
     try {
-      const res = await fetch("http://127.0.0.1:5000/reset-password", {
+      const res = await fetch(`${BASE_URL}/reset-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -39,7 +40,7 @@ export default function ForgotPassword() {
 
     } catch (error) {
       console.error(error);
-      alert("Backend not running or server error!");
+      alert("Server not reachable. Please try again.");
     }
 
     setIsLoading(false);

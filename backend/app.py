@@ -7,7 +7,7 @@ from routes.mentor_routes import mentor_bp
 
 app = Flask(__name__)
 
-CORS(app)   # ✅ THIS LINE FIXES YOUR ERROR
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(goal_bp)

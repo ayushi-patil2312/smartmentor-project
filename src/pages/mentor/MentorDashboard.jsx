@@ -3,6 +3,7 @@ import { Users, Target, MessageSquare, PlusCircle } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../../components/common/Modal';
+import BASE_URL from '../../api';
 
 export default function MentorDashboard() {
   const { data, addFeedback, addGoal } = useData();
@@ -18,18 +19,23 @@ export default function MentorDashboard() {
   const [isLoading, setIsLoading] = useState(true);
 
   React.useEffect(() => {
-    if (user?.id) {
-      fetch(`http://127.0.0.1:5000/mentor/students/${user.id}`)
-        .then(res => res.json())
-        .then(data => {
+    const loadStudents = async () => {
+      if (user?.id) {
+        try {
+          const res = await fetch(`${BASE_URL}/mentor/students/${user.id}`);
+          const data = await res.json();
           setMyStudents(Array.isArray(data) ? data : []);
-          setIsLoading(false);
-        })
-        .catch(err => {
+        } catch (err) {
           console.error("Failed to load students", err);
+          alert("Server not reachable. Please try again.");
+        } finally {
           setIsLoading(false);
-        });
-    }
+        }
+      } else {
+        setIsLoading(false);
+      }
+    };
+    loadStudents();
   }, [user]);
 
   const handleAddFeedback = (e) => {

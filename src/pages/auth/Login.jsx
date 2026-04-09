@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { BookOpen, KeyRound, Mail } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import BASE_URL from '../../api';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -33,7 +34,7 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      const res = await fetch("http://127.0.0.1:5000/login", {
+      const res = await fetch(`${BASE_URL}/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -58,7 +59,7 @@ export default function Login() {
 
     } catch (error) {
       console.error(error);
-      alert("Backend not running or server error!");
+      alert("Server not reachable. Please try again.");
     }
 
     setIsLoading(false);
