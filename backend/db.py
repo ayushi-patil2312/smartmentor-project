@@ -1,5 +1,7 @@
-import mysql.connector
-from config import DB_CONFIG
-
-def get_db_connection():
-    return mysql.connector.connect(**DB_CONFIG)
+DB_CONFIG = {
+    "host": "your-railway-host",
+    "user": "your-user",
+    "password": "your-password",
+    "database": "your-db",
+    "port": your-port
+}
