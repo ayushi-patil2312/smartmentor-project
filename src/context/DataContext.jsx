@@ -1,116 +1,127 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import BASE_URL from '../api';
 
 const DataContext = createContext();
 
-const initialData = {
-  users: [
-    { id: 'admin-1', name: 'Admin User', role: 'admin', email: 'admin@example.com' },
-    { id: 'mentor-1', name: 'Dr. Mentor', role: 'mentor', email: 'mentor@example.com' },
-    { id: 'student-1', name: 'John Doe', role: 'student', email: 'student@example.com', mentorId: 'mentor-1' },
-    { id: 'student-2', name: 'Alice Smith', role: 'student', email: 'student2@example.com', mentorId: null },
-  ],
-  goals: [
-    { id: 'g1', studentId: 'student-1', title: 'Complete React Course', progress: 80, status: 'In Progress' },
-    { id: 'g2', studentId: 'student-1', title: 'Submit Assignment 3', progress: 100, status: 'Completed' },
-  ],
-  feedbacks: [
-    { id: 'f1', studentId: 'student-1', mentorId: 'mentor-1', text: 'Great improvement on React. Keep it up!', date: new Date().toISOString() },
-  ],
-  academicData: [
-    { id: 'a1', studentId: 'student-1', type: 'marks', data: [{subject: 'React', score: 95}, {subject: 'Node', score: 85}, {subject: 'DB', score: 90}] },
-    { id: 'a2', studentId: 'student-1', type: 'progressOverTime', data: [{name: 'Week 1', score: 70}, {name: 'Week 2', score: 75}, {name: 'Week 3', score: 85}, {name: 'Week 4', score: 90}] }
-  ]
-};
-
-const defaultUsers = [
-  {
-    id: 1,
-    name: "Admin User",
-    email: "admin@example.com",
-    password: "1234",
-    role: "admin"
-  },
-  {
-    id: 2,
-    name: "Mentor User",
-    email: "mentor@example.com",
-    password: "1234",
-    role: "mentor"
-  },
-  {
-    id: 3,
-    name: "Student User",
-    email: "student@example.com",
-    password: "1234",
-    role: "student"
-  }
-];
-
 export function DataProvider({ children }) {
-  const [users, setUsers] = useState([]);
-  const [data, setData] = useState(() => {
-    const saved = localStorage.getItem('smartMentorData');
-    return saved ? JSON.parse(saved) : initialData;
+  const [data, setData] = useState({
+    users: [],
+    goals: [],
+    feedbacks: [],
+    academicData: []
   });
 
-  useEffect(() => {
-    localStorage.setItem('smartMentorData', JSON.stringify(data));
-  }, [data]);
+  const fetchAllData = async () => {
+    try {
+      const [usersRes, goalsRes, feedbacksRes, perfRes] = await Promise.all([
+        fetch(`${BASE_URL}/users`).then(r => r.json()),
+        fetch(`${BASE_URL}/goals`).then(r => r.json()),
+        fetch(`${BASE_URL}/feedbacks`).then(r => r.json()),
+        fetch(`${BASE_URL}/reports/performance`).then(r => r.json())
+      ]);
 
-  useEffect(() => {
-    const storedUsers = localStorage.getItem("users");
-
-    if (!storedUsers) {
-      localStorage.setItem("users", JSON.stringify(defaultUsers));
-      setUsers(defaultUsers);
-    } else {
-      setUsers(JSON.parse(storedUsers));
+      setData({
+        users: Array.isArray(usersRes) ? usersRes : [],
+        // the APIs return { status: 'success', data: [...] } for some endpoints
+        goals: goalsRes.data || goalsRes || [],
+        feedbacks: feedbacksRes.data || feedbacksRes || [],
+        academicData: perfRes.data || perfRes || []
+      });
+    } catch (error) {
+      console.error("Error fetching data from API:", error);
     }
+  };
+
+  useEffect(() => {
+    fetchAllData();
   }, []);
 
-  // --- Utility Updates ---
-  const updateStore = (key, newData) => {
-    setData(prev => ({ ...prev, [key]: newData }));
-  };
-
   // --- User CRUD ---
-  const addUser = (user) => {
-    const newUser = { ...user, id: Date.now() };
-    updateStore('users', [...data.users, newUser]);
+  const addUser = async (user) => {
+    try {
+      await fetch(`${BASE_URL}/users/add`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          password: user.password || '1234'
+        })
+      });
+      fetchAllData();
+    } catch (err) { console.error(err); }
   };
   
-  const deleteUser = (id) => updateStore('users', data.users.filter(u => u.id !== id));
+  const deleteUser = async (id) => {
+    try {
+      await fetch(`${BASE_URL}/users/${id}`, { method: 'DELETE' });
+      fetchAllData();
+    } catch (err) { console.error(err); }
+  };
   
-  const assignMentor = (studentId, mentorId) => {
-    updateStore('users', data.users.map(u => u.id === studentId ? { ...u, mentorId } : u));
+  const assignMentor = async (studentId, mentorId) => {
+    try {
+      await fetch(`${BASE_URL}/users/assign-mentor`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ student_id: studentId, mentor_id: mentorId })
+      });
+      fetchAllData();
+    } catch (err) { console.error(err); }
   };
 
   // --- Goal CRUD ---
-  const addGoal = (goal) => updateStore('goals', [...data.goals, { ...goal, id: Date.now() }]);
-  const updateGoalProgress = (id, progress) => {
-    updateStore('goals', data.goals.map(g => g.id === id ? { ...g, progress, status: progress === 100 ? 'Completed' : 'In Progress' } : g));
+  const addGoal = async (goal) => {
+    try {
+      await fetch(`${BASE_URL}/goals`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ student_id: goal.studentId, title: goal.title })
+      });
+      fetchAllData();
+    } catch (err) { console.error(err); }
+  };
+
+  const updateGoalProgress = async (id, progress) => {
+    try {
+      await fetch(`${BASE_URL}/goals/${id}/progress`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ progress })
+      });
+      fetchAllData();
+    } catch (err) { console.error(err); }
   };
 
   // --- Feedback CRUD ---
-  const addFeedback = (feedback) => updateStore('feedbacks', [...data.feedbacks, { ...feedback, id: Date.now(), date: new Date().toISOString() }]);
+  const addFeedback = async (feedback) => {
+    try {
+      await fetch(`${BASE_URL}/mentor/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ student_id: feedback.studentId, mentor_id: feedback.mentorId, text: feedback.text })
+      });
+      fetchAllData();
+    } catch (err) { console.error(err); }
+  };
 
   // --- Academic Data CRUD ---
-  const updateAcademicRecord = (studentId, type, newRecordData) => {
-    const currentRecords = data.academicData;
-    const existingIndex = currentRecords.findIndex(r => r.studentId === studentId && r.type === type);
-    
-    if (existingIndex >= 0) {
-      const updated = [...currentRecords];
-      updated[existingIndex] = { ...updated[existingIndex], data: newRecordData };
-      updateStore('academicData', updated);
-    } else {
-      updateStore('academicData', [...currentRecords, { id: Date.now(), studentId, type, data: newRecordData }]);
-    }
+  const updateAcademicRecord = async (studentId, type, newRecordData) => {
+    try {
+      await fetch(`${BASE_URL}/student/performance`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ student_id: studentId, type, data: newRecordData })
+      });
+      fetchAllData();
+    } catch (err) { console.error(err); }
   };
 
   return (
     <DataContext.Provider value={{
       data,
+      refreshData: fetchAllData,
       addUser, deleteUser, assignMentor,
       addGoal, updateGoalProgress,
       addFeedback,

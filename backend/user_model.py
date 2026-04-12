@@ -75,4 +75,23 @@ def get_students_by_mentor(mentor_id):
 
     conn.close()
 
-    return students
+    return students
+
+# 🗑 DELETE USER
+def delete_user(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM users WHERE id=%s", (user_id,))
+    conn.commit()
+    conn.close()
+    return {"status": "success", "message": "User deleted successfully"}
+
+# 🔗 ASSIGN MENTOR
+def assign_mentor(student_id, mentor_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE users SET mentor_id=%s WHERE id=%s", (mentor_id, student_id))
+    conn.commit()
+    conn.close()
+    return {"status": "success", "message": "Mentor assigned successfully"}
+
