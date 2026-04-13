@@ -42,7 +42,7 @@ export default function Register() {
 
     } catch (error) {
       console.error(error);
-      alert("Server not reachable. Please try again.");
+      alert("Server not reachable");
     }
 
     setIsLoading(false);

@@ -1,2 +1,2 @@
-const BASE_URL = "https://smartmentor-backend.onrender.com";
+const BASE_URL = "https://smartmentor-project.onrender.com";
 export default BASE_URL;

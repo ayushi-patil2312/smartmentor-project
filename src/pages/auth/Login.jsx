@@ -39,7 +39,7 @@ export default function Login() {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ email, password, role })
+        body: JSON.stringify({ email, password })
       });
 
       const data = await res.json();
@@ -59,7 +59,7 @@ export default function Login() {
 
     } catch (error) {
       console.error(error);
-      alert("Server not reachable. Please try again.");
+      alert("Server not reachable");
     }
 
     setIsLoading(false);
