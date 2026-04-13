@@ -1,31 +1,64 @@
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import psycopg2
 import os
-from flask import Flask
-from flask_cors import CORS   # ✅ important
-
-from routes.auth_routes import auth_bp
-from routes.goal_routes import goal_bp
-from routes.mentor_routes import mentor_bp
-from routes.student_routes import student_bp
-from routes.user_routes import user_bp
-from routes.report_routes import report_bp
-from db_schema import init_db
 
 app = Flask(__name__)
+CORS(app)
 
-CORS(app, resources={r"/*": {"origins": "*"}})
-
-app.register_blueprint(auth_bp)
-app.register_blueprint(goal_bp)
-app.register_blueprint(mentor_bp)
-app.register_blueprint(student_bp)
-app.register_blueprint(user_bp)
-app.register_blueprint(report_bp)
+def get_db():
+    return psycopg2.connect(
+        host=os.getenv("DB_HOST"),
+        database=os.getenv("DB_NAME"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASS"),
+        port=os.getenv("DB_PORT")
+    )
 
 @app.route('/')
 def home():
-    return "Backend running 🚀"
+    return "API Running"
+
+@app.route('/users')
+def get_users():
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+
+        cur.execute("SELECT * FROM users")
+        users = cur.fetchall()
+
+        cur.close()
+        conn.close()
+
+        return jsonify(users)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.json
+    email = data.get('email')
+    password = data.get('password')
+
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+
+        cur.execute("SELECT * FROM users WHERE email=%s AND password=%s", (email, password))
+        user = cur.fetchone()
+
+        cur.close()
+        conn.close()
+
+        if user:
+            return jsonify({"message": "Login success"})
+        else:
+            return jsonify({"error": "Invalid credentials"}), 401
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    init_db()  # Initialize the DB schemas directly on startup
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run()
