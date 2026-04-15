@@ -143,16 +143,22 @@ export default function StudentDashboard() {
         
         <div className="card md:col-span-3">
           <h3 className="text-lg font-semibold mb-4">Performance Timeline</h3>
-          <div className="h-40 w-full min-w-0 flex-1">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={myProgressData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#6b7280'}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#6b7280'}} domain={['dataMin - 10', 'dataMax + 10']} />
-                <Tooltip cursor={{ stroke: '#e5e7eb', strokeWidth: 1, strokeDasharray: '5 5' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                <Line type="monotone" dataKey="score" stroke="#6366F1" strokeWidth={3} dot={{ strokeWidth: 3, r: 4, fill: '#fff' }} activeDot={{ r: 6 }} />
-              </LineChart>
-            </ResponsiveContainer>
+          <div className="w-full h-[300px]">
+            {myProgressData && myProgressData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={myProgressData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#6b7280'}} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#6b7280'}} domain={['dataMin - 10', 'dataMax + 10']} />
+                  <Tooltip cursor={{ stroke: '#e5e7eb', strokeWidth: 1, strokeDasharray: '5 5' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                  <Line type="monotone" dataKey="score" stroke="#6366F1" strokeWidth={3} dot={{ strokeWidth: 3, r: 4, fill: '#fff' }} activeDot={{ r: 6 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full w-full bg-gray-50 dark:bg-gray-800/50 rounded-xl">
+                <p className="text-gray-500 italic text-sm">No data available</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
