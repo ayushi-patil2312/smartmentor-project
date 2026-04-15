@@ -119,5 +119,34 @@ def login():
     else:
         return jsonify({"error": "Invalid credentials", "status": "error"}), 401
 
+# Missing UI Mock Endpoints to prevent CORS 404s
+@app.route('/student/performance', methods=['POST', 'OPTIONS'])
+def update_academic():
+    return jsonify({"status": "success"})
+
+@app.route('/users/add', methods=['POST', 'OPTIONS'])
+def add_user():
+    return jsonify({"status": "success"})
+
+@app.route('/users/<id>', methods=['DELETE', 'OPTIONS'])
+def delete_user(id):
+    return jsonify({"status": "success"})
+
+@app.route('/users/assign-mentor', methods=['POST', 'OPTIONS'])
+def assign_mentor():
+    return jsonify({"status": "success"})
+
+@app.route('/goals', methods=['POST', 'OPTIONS'])
+def add_goal():
+    return jsonify({"status": "success"})
+
+@app.route('/goals/<id>/progress', methods=['PUT', 'OPTIONS'])
+def update_goal_progress(id):
+    return jsonify({"status": "success"})
+
+@app.route('/mentor/feedback', methods=['POST', 'OPTIONS'])
+def mentor_feedback():
+    return jsonify({"status": "success"})
+
 if __name__ == '__main__':
     app.run()
