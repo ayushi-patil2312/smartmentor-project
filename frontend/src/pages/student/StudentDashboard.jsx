@@ -4,6 +4,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../../components/common/Modal';
+import BASE_URL from "../../api";
 
 export default function StudentDashboard() {
   const { data, updateAcademicRecord, updateGoalProgress } = useData();
@@ -11,11 +12,67 @@ export default function StudentDashboard() {
 
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   const [record, setRecord] = useState({ subject: '', score: '' });
+  const [goals, setGoals] = useState([]);
+  const [newGoal, setNewGoal] = useState("");
 
   // Real Feeling Data & Progress Animation state
   const [usage, setUsage] = useState(0);
   const [targetUsage, setTargetUsage] = useState(0);
   const limit = 120;
+  export default function StudentDashboard() {
+
+  // ✅ existing
+  const { data } = useData();
+  const { user } = useAuth();
+
+  const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
+  const [record, setRecord] = useState({ subject: '', score: '' });
+
+  // 🔥 ADD HERE (STEP 2 already)
+  const [goals, setGoals] = useState([]);
+  const [newGoal, setNewGoal] = useState("");
+
+  // 🔥 STEP 3 → ADD HERE
+  const fetchGoals = async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/goals/${dataId}`);
+      const data = await res.json();
+      setGoals(data);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  const handleAddGoal = async () => {
+    if (!newGoal) return;
+
+    await fetch(`${BASE_URL}/goals`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        student_id: dataId,
+        title: newGoal,
+      }),
+    });
+
+    setNewGoal("");
+    fetchGoals();
+  };
+
+  // 🔥 STEP 4 → ALSO HERE
+  useEffect(() => {
+    if (dataId) fetchGoals();
+  }, [dataId]);
+
+  // existing functions
+  const handleAddRecord = (...) => { ... }
+
+  return (
+    ...
+  )
+}
 
   React.useEffect(() => {
     // Real Feeling Data: Math.random()

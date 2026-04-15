@@ -163,7 +163,31 @@ def assign_mentor():
 
 @app.route('/goals', methods=['POST', 'OPTIONS'])
 def add_goal():
-    return jsonify({"status": "success"})
+    if request.method == 'OPTIONS':
+        return jsonify({'status': 'ok'}), 200
+
+    try:
+        data = request.json
+
+        student_id = data.get('student_id')
+        title = data.get('title')
+
+        if not student_id or not title:
+            return jsonify({"error": "Missing data"}), 400
+
+        conn = get_db()
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO goals (student_id, title, progress, status) VALUES (%s, %s, %s, %s)",
+                (student_id, title, 0, "pending")
+            )
+            conn.commit()
+
+        return jsonify({"message": "Goal added"}), 200
+
+    except Exception as e:
+        print("ERROR:", e)
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/goals/<id>/progress', methods=['PUT', 'OPTIONS'])
 def update_goal_progress(id):
