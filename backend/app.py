@@ -6,9 +6,12 @@ import os
 
 app = Flask(__name__)
 # Enable CORS properly for Vercel
-CORS(app, resources={
+CORS(app, supports_credentials=True, resources={
     r"/*": {
-        "origins": "https://smartmentor-project.vercel.app"
+        "origins": [
+            "https://smartmentor-project.vercel.app",
+            "https://smartmentor-project-git-main-ayspoo.vercel.app"
+        ]
     }
 })
 
@@ -73,8 +76,11 @@ def get_performance():
     except:
         return jsonify([])
 
-@app.route('/register', methods=['POST'])
+@app.route('/register', methods=['POST', 'OPTIONS'])
 def register():
+    if request.method == 'OPTIONS':
+        return jsonify({'status': 'ok'}), 200
+        
     data = request.json
     if not data:
         return jsonify({"error": "Missing JSON body"}), 400
@@ -101,8 +107,11 @@ def register():
 
     return jsonify({"status": "success", "user": new_user}), 201
 
-@app.route('/login', methods=['POST'])
+@app.route('/login', methods=['POST', 'OPTIONS'])
 def login():
+    if request.method == 'OPTIONS':
+        return jsonify({'status': 'ok'}), 200
+        
     data = request.json
     if not data:
         return jsonify({"error": "Missing JSON body"}), 400
