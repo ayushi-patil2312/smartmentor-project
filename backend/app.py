@@ -6,7 +6,11 @@ import os
 
 app = Flask(__name__)
 # Enable CORS properly for Vercel
-CORS(app, resources={r"/*": {"origins": ["https://smartmentor-project.vercel.app", "http://localhost:5173", "*"]}})
+CORS(app, resources={
+    r"/*": {
+        "origins": "https://smartmentor-project.vercel.app"
+    }
+})
 
 def get_db():
     if 'db' not in g:
@@ -121,8 +125,20 @@ def login():
 
 # Missing UI Mock Endpoints to prevent CORS 404s
 @app.route('/student/performance', methods=['POST', 'OPTIONS'])
-def update_academic():
-    return jsonify({"status": "success"})
+def update_performance():
+    if request.method == 'OPTIONS':
+        return jsonify({'status': 'ok'}), 200
+
+    try:
+        data = request.json
+        print("DATA:", data)
+
+        # You can insert into DB here later
+        return jsonify({"message": "Performance updated"}), 200
+
+    except Exception as e:
+        print(e)
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/users/add', methods=['POST', 'OPTIONS'])
 def add_user():
