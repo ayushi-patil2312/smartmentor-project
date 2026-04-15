@@ -47,32 +47,25 @@ def get_users():
 def get_goals():
     try:
         conn = get_db()
-        with conn.cursor() as cur:
-            cur.execute("SELECT * FROM goals")
-            goals = cur.fetchall()
-        return jsonify(goals)
-    except:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM goals")
+        data = cur.fetchall()
+        return jsonify(data)
+    except Exception as e:
+        print(e)
         return jsonify([])
 
 @app.route('/feedbacks')
 def get_feedbacks():
     try:
-        conn = get_db()
-        with conn.cursor() as cur:
-            cur.execute("SELECT * FROM feedbacks")
-            feedbacks = cur.fetchall()
-        return jsonify(feedbacks)
+        return jsonify([])
     except:
         return jsonify([])
 
 @app.route('/reports/performance')
-def get_performance_reports():
+def get_performance():
     try:
-        conn = get_db()
-        with conn.cursor() as cur:
-            cur.execute("SELECT * FROM performance_reports")
-            reports = cur.fetchall()
-        return jsonify(reports)
+        return jsonify([])
     except:
         return jsonify([])
 
