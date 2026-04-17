@@ -53,7 +53,7 @@ export default function MentorDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f4f5fb]">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#f7f7ff_0%,#f2f4fb_45%,#edf1f8_100%)]">
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex w-full items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-gray-100 lg:max-w-md">
@@ -97,43 +97,46 @@ export default function MentorDashboard() {
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           {isLoading ? (
-            <div className="rounded-3xl bg-white p-8 text-gray-500 shadow-sm ring-1 ring-gray-100">
+            <div className="rounded-2xl border border-white/60 bg-white/75 p-8 text-gray-500 shadow-xl shadow-indigo-100/40 backdrop-blur-md">
               Loading your students...
             </div>
           ) : myStudents.map((student, index) => (
-              <div key={student.id} className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
-                <div className="mb-6 flex items-start justify-between">
-                  <div className="flex items-center gap-3">
+              <div
+                key={student.id}
+                className="group rounded-2xl border border-white/70 bg-white/80 p-6 shadow-lg shadow-indigo-100/50 backdrop-blur-lg transition-all duration-300 hover:-translate-y-1 hover:border-indigo-200/70 hover:shadow-2xl hover:shadow-indigo-200/40"
+              >
+                <div className="mb-6 flex items-start justify-between gap-4">
+                  <div className="flex min-w-0 items-center gap-3">
                     <div className="relative">
-                      <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#5a5fe2] to-[#8538de] text-lg font-bold text-white">
+                      <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#4f7dff] via-[#5f60e7] to-[#8f42e9] text-lg font-bold text-white shadow-lg shadow-indigo-300/40 ring-2 ring-white/70">
                         {student.name?.[0] || 'S'}
                       </div>
-                      <span className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-white bg-green-500" />
+                      <span className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-white bg-emerald-500 shadow-sm shadow-emerald-300" />
                     </div>
-                    <div>
-                      <h3 className="text-[28px] font-semibold leading-none text-[#131722]">{student.name}</h3>
-                      <p className="mt-1 text-sm text-gray-500">
+                    <div className="min-w-0">
+                      <h3 className="truncate text-2xl font-semibold leading-tight text-[#131722]">{student.name}</h3>
+                      <p className="mt-1 truncate text-sm text-gray-500">
                         {student.course || student.email || 'Academic Mentorship'}
                       </p>
                     </div>
                   </div>
-                  <span className={`rounded-full px-4 py-1 text-[10px] font-bold uppercase tracking-wider ${index % 2 === 0 ? 'bg-[#d7faf2] text-[#0d9b7f]' : 'bg-[#efe6ff] text-[#7f4cd4]'}`}>
+                  <span className={`shrink-0 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wider shadow-sm ${index % 2 === 0 ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-violet-200 bg-violet-50 text-violet-700'}`}>
                     {index % 2 === 0 ? 'Active' : 'Milestone Near'}
                   </span>
                 </div>
 
                 <div className="mb-5 grid grid-cols-3 gap-3">
-                  <div className="rounded-2xl bg-[#f4f5fb] px-3 py-3">
+                  <div className="rounded-xl border border-white/70 bg-gradient-to-b from-white/70 to-[#f3f5ff]/90 px-3 py-3 shadow-sm">
                     <p className="text-[10px] uppercase tracking-wider text-gray-400">Grade Avg</p>
-                    <p className="mt-2 text-[30px] font-semibold text-[#6b45d6]">{index % 2 === 0 ? 'A-' : 'A+'}</p>
+                    <p className="mt-2 text-2xl font-semibold text-[#6b45d6]">{index % 2 === 0 ? 'A-' : 'A+'}</p>
                   </div>
-                  <div className="rounded-2xl bg-[#f4f5fb] px-3 py-3">
+                  <div className="rounded-xl border border-white/70 bg-gradient-to-b from-white/70 to-[#f3f5ff]/90 px-3 py-3 shadow-sm">
                     <p className="text-[10px] uppercase tracking-wider text-gray-400">Attendance</p>
-                    <p className="mt-2 text-[30px] font-semibold text-[#6b45d6]">{index % 2 === 0 ? '94%' : '98%'}</p>
+                    <p className="mt-2 text-2xl font-semibold text-[#6b45d6]">{index % 2 === 0 ? '94%' : '98%'}</p>
                   </div>
-                  <div className="rounded-2xl bg-[#f4f5fb] px-3 py-3">
+                  <div className="rounded-xl border border-white/70 bg-gradient-to-b from-white/70 to-[#f3f5ff]/90 px-3 py-3 shadow-sm">
                     <p className="text-[10px] uppercase tracking-wider text-gray-400">Sessions</p>
-                    <p className="mt-2 text-[30px] font-semibold text-[#444ab8]">{index % 2 === 0 ? '12' : '15'}</p>
+                    <p className="mt-2 text-2xl font-semibold text-[#444ab8]">{index % 2 === 0 ? '12' : '15'}</p>
                   </div>
                 </div>
 
@@ -142,19 +145,21 @@ export default function MentorDashboard() {
                     <span className="font-medium text-[#131722]">Semester Progress</span>
                     <span className="font-semibold text-[#4d4fd6]">{index % 2 === 0 ? '78%' : '92%'}</span>
                   </div>
-                  <div className="h-2 rounded-full bg-[#ececf6]">
+                  <div className="h-2.5 rounded-full bg-[#e8ebf7] ring-1 ring-white/70">
                     <div
-                      className={`h-2 rounded-full ${index % 2 === 0 ? 'bg-[#4d4fd6]' : 'bg-[#8c3fe3]'}`}
+                      className={`h-2.5 rounded-full transition-all duration-500 ${index % 2 === 0 ? 'bg-gradient-to-r from-[#4d4fd6] to-[#5d78f0]' : 'bg-gradient-to-r from-[#8c3fe3] to-[#b145eb]'}`}
                       style={{ width: index % 2 === 0 ? '78%' : '92%' }}
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <button className="h-11 rounded-xl bg-[#f5f5fc] text-sm font-semibold text-[#4b4db8]">View Logs</button>
+                  <button className="h-11 rounded-xl border border-white/80 bg-white/70 text-sm font-semibold text-[#4b4db8] shadow-sm transition-all duration-300 hover:bg-white hover:shadow-md">
+                    View Logs
+                  </button>
                   <button
                     onClick={() => { setSelectedStudent(student.id); setIsFeedbackModalOpen(true); }}
-                    className="h-11 rounded-xl bg-[#4c50d9] text-sm font-semibold text-white"
+                    className="h-11 rounded-xl bg-gradient-to-r from-[#4c50d9] to-[#7b46e8] text-sm font-semibold text-white shadow-lg shadow-indigo-300/40 transition-all duration-300 hover:brightness-105 hover:shadow-xl"
                   >
                     Submit Feedback
                   </button>
@@ -162,7 +167,7 @@ export default function MentorDashboard() {
               </div>
             ))}
           {(!isLoading && myStudents.length === 0) && (
-            <div className="rounded-3xl border border-dashed border-gray-300 bg-white p-12 text-center shadow-sm xl:col-span-2">
+            <div className="rounded-2xl border border-dashed border-indigo-200 bg-white/80 p-12 text-center shadow-lg shadow-indigo-100/30 backdrop-blur-md xl:col-span-2">
               <Users className="mx-auto mb-3 h-12 w-12 text-gray-400" />
               <p className="font-medium text-gray-500">No students currently assigned to you.</p>
             </div>
