@@ -121,6 +121,9 @@ def home():
     if app.static_folder and os.path.exists(os.path.join(app.static_folder, 'index.html')):
         return app.send_static_file('index.html')
     return jsonify({"status": "API Running"})
+@app.route('/api/health', methods=['GET'])
+def health():
+    return jsonify({"status": "ok"})
 
 
 # ───── Auth ─────
