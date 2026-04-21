@@ -17,11 +17,9 @@ export default function ProfilePage() {
     }
     return colour.substring(0, 7);
   };
-  
-  const bgColor = stringToColour(user?.email || 'default').replace('#', '');
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto">
+    <div className="space-y-8 w-full">
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-2xl bg-indigo-100 flex items-center justify-center text-primary font-bold text-2xl shadow-sm">

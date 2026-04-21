@@ -1,296 +1,159 @@
-import React, { useState } from 'react';
-import { Bell, Download, Flag, Moon, Search, UserPlus, Users } from 'lucide-react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Bell, Download, Flag, UserPlus, Users } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
-import Modal from '../../components/common/Modal';
 import BASE_URL from '../../api';
 
 export default function MentorDashboard() {
-  const { data, addFeedback, addGoal } = useData();
+  const { addFeedback, addGoal } = useData();
   const { user } = useAuth();
-  
-  const [selectedStudent, setSelectedStudent] = useState(null);
-  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
-  const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
+
+  const [selectedStudent, setSelectedStudent] = useState('');
   const [feedbackText, setFeedbackText] = useState('');
-  const [goal, setGoal] = useState({ title: '', progress: 0 });
+  const [feedbackRating, setFeedbackRating] = useState(5);
+  const [goal, setGoal] = useState({ title: '' });
 
   const [myStudents, setMyStudents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  React.useEffect(() => {
-    const loadStudents = async () => {
-      if (user?.id) {
-        try {
-          const res = await fetch(`${BASE_URL}/mentor/students/${user.id}`);
-          const data = await res.json();
-          setMyStudents(Array.isArray(data) ? data : []);
-        } catch (err) {
-          console.error("Failed to load students", err);
-          alert("Server not reachable. Please try again.");
-        } finally {
-          setIsLoading(false);
-        }
-      } else {
-        setIsLoading(false);
-      }
-    };
-    loadStudents();
+  const loadStudents = useCallback(async () => {
+    if (!user?.id) { setIsLoading(false); return; }
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${BASE_URL}/api/my-students/${user.id}`);
+      const data = await res.json();
+      setMyStudents(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Failed to load students', err);
+    } finally {
+      setIsLoading(false);
+    }
   }, [user]);
 
-  const handleAddFeedback = (e) => {
+  useEffect(() => { loadStudents(); }, [loadStudents]);
+
+  const handleAddFeedback = async (e) => {
     e.preventDefault();
-    addFeedback({ studentId: selectedStudent, mentorId: user?.id, text: feedbackText });
+    if (!selectedStudent) return;
+    await addFeedback({
+      studentId: Number(selectedStudent),
+      mentorId: user?.id,
+      text: feedbackText,
+      rating: Number(feedbackRating),
+    });
     setFeedbackText('');
-    setIsFeedbackModalOpen(false);
+    setFeedbackRating(5);
   };
 
-  const handleAddGoal = (e) => {
+  const handleAddGoal = async (e) => {
     e.preventDefault();
-    addGoal({ studentId: selectedStudent, title: goal.title, progress: parseInt(goal.progress), status: 'In Progress' });
-    setGoal({ title: '', progress: 0 });
-    setIsGoalModalOpen(false);
+    if (!selectedStudent || !goal.title) return;
+    await addGoal({ studentId: Number(selectedStudent), title: goal.title });
+    setGoal({ title: '' });
+  };
+
+  const avgScore = (marks) => {
+    if (!Array.isArray(marks) || marks.length === 0) return null;
+    return Math.round(marks.reduce((a, m) => a + (Number(m.score) || 0), 0) / marks.length);
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#f7f7ff_0%,#f2f4fb_45%,#edf1f8_100%)]">
-      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex w-full items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-gray-100 lg:max-w-md">
-            <Search size={16} className="text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search students or records..."
-              className="w-full bg-transparent text-sm text-gray-600 placeholder:text-gray-400 focus:outline-none"
-            />
+    <div className="w-full space-y-6 md:space-y-8">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <span className="block text-xs font-bold uppercase tracking-[0.2em] text-primary mb-1">Overview</span>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Active Mentorships</h1>
+          <p className="mt-2 max-w-2xl text-sm md:text-base text-gray-500">
+            You are currently guiding {myStudents.length} student{myStudents.length === 1 ? '' : 's'}.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <button className="btn-secondary flex items-center gap-2"><Download size={15} /> Export</button>
+          <button className="btn-primary flex items-center gap-2"><UserPlus size={15} /> View My Students</button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {isLoading ? (
+          <div className="card md:col-span-2 lg:col-span-3 text-gray-500">Loading your students...</div>
+        ) : myStudents.length === 0 ? (
+          <div className="card md:col-span-2 lg:col-span-3 text-center py-10">
+            <Users className="mx-auto mb-3 h-10 w-10 text-gray-400" />
+            <p className="text-gray-500">No students assigned yet.</p>
           </div>
-          <div className="flex items-center justify-end gap-2">
-            <button className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-gray-500 shadow-sm ring-1 ring-gray-100">
-              <Bell size={16} />
-            </button>
-            <button className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-gray-500 shadow-sm ring-1 ring-gray-100">
-              <Moon size={16} />
-            </button>
-            <button className="rounded-full bg-white px-4 py-2 text-sm font-medium text-[#4b4db8] shadow-sm ring-1 ring-gray-100">
-              Mentorship Tracking
-            </button>
+        ) : myStudents.map((student) => {
+          const avg = avgScore(student.marks);
+          return (
+            <div key={student.id} className="card flex flex-col gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-secondary text-white font-bold text-lg flex items-center justify-center">
+                  {student.name?.[0]?.toUpperCase() || 'S'}
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-bold text-gray-900 dark:text-white truncate">{student.name}</h3>
+                  <p className="text-xs text-gray-500 truncate">{student.email}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="bg-gray-50 dark:bg-gray-800/60 rounded-lg p-2">
+                  <p className="text-[10px] uppercase text-gray-400">Attend</p>
+                  <p className="text-base font-bold">{student.attendance != null ? `${student.attendance}%` : '—'}</p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-800/60 rounded-lg p-2">
+                  <p className="text-[10px] uppercase text-gray-400">Avg</p>
+                  <p className="text-base font-bold">{avg ?? '—'}</p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-800/60 rounded-lg p-2">
+                  <p className="text-[10px] uppercase text-gray-400">Hours</p>
+                  <p className="text-base font-bold">{student.study_hours ?? '—'}</p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+        <div className="card">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h2 className="text-xl md:text-2xl font-semibold text-gray-900 dark:text-white">Assign Academic Goal</h2>
+              <p className="mt-1 text-sm text-gray-500">Define a target for one of your students.</p>
+            </div>
+            <Flag size={16} className="mt-2 text-gray-300" />
           </div>
+          <form onSubmit={handleAddGoal} className="space-y-4">
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Student</label>
+              <select required value={selectedStudent} onChange={(e) => setSelectedStudent(e.target.value)} className="input-field">
+                <option value="">Select student</option>
+                {myStudents.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Goal</label>
+              <input required type="text" className="input-field" placeholder="e.g. Finish Algorithms module"
+                value={goal.title} onChange={(e) => setGoal({ title: e.target.value })} />
+            </div>
+            <button type="submit" className="btn-primary w-full">Publish Goal</button>
+          </form>
         </div>
 
-        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <span className="mb-1 block text-xs font-bold uppercase tracking-[0.2em] text-[#6b45d6]">Overview</span>
-            <h1 className="text-4xl font-bold leading-tight text-[#131722]">Active Mentorships</h1>
-            <p className="mt-2 max-w-2xl text-base text-gray-500">
-              You are currently guiding {myStudents.length} students toward their academic milestones this semester.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <button className="inline-flex h-12 items-center gap-2 rounded-full bg-white px-6 text-sm font-semibold text-[#4b4db8] shadow-md shadow-[#4b4db8]/5 ring-1 ring-gray-100">
-              <Download size={15} /> Export Data
-            </button>
-            <button className="inline-flex h-12 items-center gap-2 rounded-full bg-[#4c50d9] px-6 text-sm font-semibold text-white shadow-md shadow-[#4c50d9]/30">
-              <UserPlus size={15} /> Add New Student
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-          {isLoading ? (
-            <div className="rounded-2xl border border-white/60 bg-white/75 p-8 text-gray-500 shadow-xl shadow-indigo-100/40 backdrop-blur-md">
-              Loading your students...
-            </div>
-          ) : myStudents.map((student, index) => (
-              <div
-                key={student.id}
-                className="group rounded-2xl border border-white/70 bg-white/80 p-6 shadow-lg shadow-indigo-100/50 backdrop-blur-lg transition-all duration-300 hover:-translate-y-1 hover:border-indigo-200/70 hover:shadow-2xl hover:shadow-indigo-200/40"
-              >
-                <div className="mb-6 flex items-start justify-between gap-4">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="relative">
-                      <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#4f7dff] via-[#5f60e7] to-[#8f42e9] text-lg font-bold text-white shadow-lg shadow-indigo-300/40 ring-2 ring-white/70">
-                        {student.name?.[0] || 'S'}
-                      </div>
-                      <span className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-white bg-emerald-500 shadow-sm shadow-emerald-300" />
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="truncate text-2xl font-semibold leading-tight text-[#131722]">{student.name}</h3>
-                      <p className="mt-1 truncate text-sm text-gray-500">
-                        {student.course || student.email || 'Academic Mentorship'}
-                      </p>
-                    </div>
-                  </div>
-                  <span className={`shrink-0 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wider shadow-sm ${index % 2 === 0 ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-violet-200 bg-violet-50 text-violet-700'}`}>
-                    {index % 2 === 0 ? 'Active' : 'Milestone Near'}
-                  </span>
-                </div>
-
-                <div className="mb-5 grid grid-cols-3 gap-3">
-                  <div className="rounded-xl border border-white/70 bg-gradient-to-b from-white/70 to-[#f3f5ff]/90 px-3 py-3 shadow-sm">
-                    <p className="text-[10px] uppercase tracking-wider text-gray-400">Grade Avg</p>
-                    <p className="mt-2 text-2xl font-semibold text-[#6b45d6]">{index % 2 === 0 ? 'A-' : 'A+'}</p>
-                  </div>
-                  <div className="rounded-xl border border-white/70 bg-gradient-to-b from-white/70 to-[#f3f5ff]/90 px-3 py-3 shadow-sm">
-                    <p className="text-[10px] uppercase tracking-wider text-gray-400">Attendance</p>
-                    <p className="mt-2 text-2xl font-semibold text-[#6b45d6]">{index % 2 === 0 ? '94%' : '98%'}</p>
-                  </div>
-                  <div className="rounded-xl border border-white/70 bg-gradient-to-b from-white/70 to-[#f3f5ff]/90 px-3 py-3 shadow-sm">
-                    <p className="text-[10px] uppercase tracking-wider text-gray-400">Sessions</p>
-                    <p className="mt-2 text-2xl font-semibold text-[#444ab8]">{index % 2 === 0 ? '12' : '15'}</p>
-                  </div>
-                </div>
-
-                <div className="mb-6">
-                  <div className="mb-2 flex items-center justify-between text-sm">
-                    <span className="font-medium text-[#131722]">Semester Progress</span>
-                    <span className="font-semibold text-[#4d4fd6]">{index % 2 === 0 ? '78%' : '92%'}</span>
-                  </div>
-                  <div className="h-2.5 rounded-full bg-[#e8ebf7] ring-1 ring-white/70">
-                    <div
-                      className={`h-2.5 rounded-full transition-all duration-500 ${index % 2 === 0 ? 'bg-gradient-to-r from-[#4d4fd6] to-[#5d78f0]' : 'bg-gradient-to-r from-[#8c3fe3] to-[#b145eb]'}`}
-                      style={{ width: index % 2 === 0 ? '78%' : '92%' }}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <button className="h-11 rounded-xl border border-white/80 bg-white/70 text-sm font-semibold text-[#4b4db8] shadow-sm transition-all duration-300 hover:bg-white hover:shadow-md">
-                    View Logs
-                  </button>
-                  <button
-                    onClick={() => { setSelectedStudent(student.id); setIsFeedbackModalOpen(true); }}
-                    className="h-11 rounded-xl bg-gradient-to-r from-[#4c50d9] to-[#7b46e8] text-sm font-semibold text-white shadow-lg shadow-indigo-300/40 transition-all duration-300 hover:brightness-105 hover:shadow-xl"
-                  >
-                    Submit Feedback
-                  </button>
-                </div>
-              </div>
-            ))}
-          {(!isLoading && myStudents.length === 0) && (
-            <div className="rounded-2xl border border-dashed border-indigo-200 bg-white/80 p-12 text-center shadow-lg shadow-indigo-100/30 backdrop-blur-md xl:col-span-2">
-              <Users className="mx-auto mb-3 h-12 w-12 text-gray-400" />
-              <p className="font-medium text-gray-500">No students currently assigned to you.</p>
-            </div>
-          )}
-        </div>
-
-        <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
-          <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-100 xl:col-span-2">
-            <div className="mb-4 flex items-start justify-between">
-              <div>
-                <h2 className="text-[36px] font-semibold leading-tight text-[#131722]">Assign Academic Goals</h2>
-                <p className="mt-1 text-sm text-gray-500">Define new targets for the current mentorship cycle.</p>
-              </div>
-              <Flag size={15} className="mt-2 text-[#d7d1ef]" />
-            </div>
-
-            <form onSubmit={handleAddGoal} className="space-y-4">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">Select Student</label>
-                  <select
-                    value={selectedStudent || ''}
-                    onChange={(e) => setSelectedStudent(e.target.value || null)}
-                    className="h-12 w-full rounded-xl border border-transparent bg-[#eef0f5] px-4 text-sm text-[#131722] outline-none focus:ring-2 focus:ring-[#4d4fd6]/40"
-                  >
-                    <option value="" disabled>Select student</option>
-                    {myStudents.map((student) => (
-                      <option key={student.id} value={student.id}>{student.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-2 block text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">Priority Setting</label>
-                  <div className="flex gap-2">
-                    <button type="button" className="h-12 flex-1 rounded-full bg-[#eef0f5] text-xs font-semibold text-gray-700">Low</button>
-                    <button type="button" className="h-12 flex-1 rounded-full border-2 border-[#4d4fd6] bg-[#eef0f5] text-xs font-semibold text-[#4d4fd6]">Medium</button>
-                    <button type="button" className="h-12 flex-1 rounded-full bg-[#eef0f5] text-xs font-semibold text-gray-700">High</button>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">Goal Description</label>
-                <input
-                  required
-                  type="text"
-                  className="h-14 w-full rounded-2xl border border-transparent bg-[#eef0f5] px-4 text-sm text-[#131722] placeholder:text-gray-400 outline-none focus:ring-2 focus:ring-[#4d4fd6]/40"
-                  placeholder="e.g. Complete the advanced algorithm design modules..."
-                  value={goal.title}
-                  onChange={e => setGoal({ ...goal, title: e.target.value })}
-                />
-              </div>
-
-              <div className="pt-2 text-right">
-                <button type="submit" className="h-12 rounded-full bg-[#4c50d9] px-8 text-sm font-semibold text-white shadow-md shadow-[#4c50d9]/30">
-                  Publish Goal
-                </button>
-              </div>
-            </form>
-          </div>
-
-          <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
-            <h2 className="text-[36px] font-semibold leading-tight text-[#131722]">Quick Feedback</h2>
-            <p className="mt-3 text-sm text-gray-500">Submit a quick observation for your last session. This will be visible to the student immediately.</p>
-
-            <div className="my-6 flex gap-3">
-              {['😞', '😕', '😊', '🙂'].map((face, idx) => (
-                <button
-                  key={face}
-                  type="button"
-                  className={`flex h-9 w-9 items-center justify-center rounded-full border text-sm ${idx === 2 ? 'border-[#4c50d9] text-[#4c50d9]' : 'border-[#ececf6] text-gray-400'}`}
-                >
-                  {face}
-                </button>
-              ))}
-            </div>
-
-            <form onSubmit={handleAddFeedback} className="space-y-3">
-              <input
-                type="text"
-                className="h-11 w-full rounded-xl border border-transparent bg-[#f1f2f8] px-4 text-sm text-[#131722] placeholder:text-gray-400 outline-none focus:ring-2 focus:ring-[#4d4fd6]/40"
-                placeholder="Short session title..."
-                value={feedbackText}
-                onChange={e => setFeedbackText(e.target.value)}
-              />
-              <textarea
-                required
-                className="min-h-[92px] w-full resize-none rounded-xl border border-transparent bg-[#f1f2f8] px-4 py-3 text-sm text-[#131722] placeholder:text-gray-400 outline-none focus:ring-2 focus:ring-[#4d4fd6]/40"
-                placeholder="How did they do today?"
-                value={feedbackText}
-                onChange={e => setFeedbackText(e.target.value)}
-              />
-              <button type="submit" className="mt-2 h-12 w-full rounded-full bg-[#4c50d9] text-sm font-semibold text-white shadow-md shadow-[#4c50d9]/30">
-                Send Update
-              </button>
-            </form>
-          </div>
-        </div>
-
-        <div className="mt-6">
-          <p className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-gray-400">Recent Activity Feed</p>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0e9a7f]">Completed</p>
-              <p className="mt-2 font-semibold text-[#131722]">Julian submitted Algorithm Final</p>
-              <p className="mt-2 text-xs text-gray-400">2 hours ago</p>
-            </div>
-            <div className="rounded-2xl border-l-4 border-[#8f3ee4] bg-white p-4 shadow-sm ring-1 ring-gray-100">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#8f3ee4]">Note</p>
-              <p className="mt-2 font-semibold text-[#131722]">Elena requested a reschedule</p>
-              <p className="mt-2 text-xs text-gray-400">4 hours ago</p>
-            </div>
-            <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0e9a7f]">Milestone</p>
-              <p className="mt-2 font-semibold text-[#131722]">Sarah hit 10 sessions!</p>
-              <p className="mt-2 text-xs text-gray-400">Yesterday</p>
-            </div>
-            <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">Upcoming</p>
-              <p className="mt-2 font-semibold text-[#131722]">Review: Career Roadmap</p>
-              <p className="mt-2 text-xs text-gray-400">Tomorrow, 10:00 AM</p>
-            </div>
-          </div>
+        <div className="card">
+          <h2 className="text-xl md:text-2xl font-semibold text-gray-900 dark:text-white">Quick Feedback</h2>
+          <p className="mt-1 text-sm text-gray-500">Submit feedback for a student.</p>
+          <form onSubmit={handleAddFeedback} className="space-y-3 mt-4">
+            <select required value={selectedStudent} onChange={(e) => setSelectedStudent(e.target.value)} className="input-field">
+              <option value="">Select student</option>
+              {myStudents.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+            <textarea required className="input-field min-h-[100px]" placeholder="How did they do today?"
+              value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} />
+            <select className="input-field" value={feedbackRating} onChange={(e) => setFeedbackRating(e.target.value)}>
+              {[1,2,3,4,5].map(n => <option key={n} value={n}>{n} ★</option>)}
+            </select>
+            <button type="submit" className="btn-primary w-full">Send Feedback</button>
+          </form>
         </div>
       </div>
     </div>

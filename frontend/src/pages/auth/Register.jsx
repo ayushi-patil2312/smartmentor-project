@@ -23,7 +23,7 @@ export default function Register() {
     setIsLoading(true);
 
     try {
-      const res = await fetch(`${BASE_URL}/register`, {
+      const res = await fetch(`${BASE_URL}/api/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

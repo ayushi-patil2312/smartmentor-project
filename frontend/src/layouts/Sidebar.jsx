@@ -23,6 +23,7 @@ export default function Sidebar({ role, isOpen, setIsOpen }) {
       case 'mentor':
         return [
           { name: 'Dashboard', path: '/mentor', icon: <LayoutDashboard size={20} /> },
+          { name: 'My Students', path: '/mentor/students', icon: <Users size={20} /> },
           { name: 'Reports', path: '/reports', icon: <BarChart3 size={20} /> },
           { name: 'Profile', path: '/profile', icon: <User size={20} /> },
         ];

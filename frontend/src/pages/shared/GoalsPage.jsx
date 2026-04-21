@@ -14,7 +14,7 @@ export default function GoalsPage() {
   useEffect(() => {
     const fetchGoals = async () => {
       try {
-        const res = await fetch(`${BASE_URL}/goals`);
+        const res = await fetch(`${BASE_URL}/api/goals`);
         const data = await res.json();
         setGoals(data);
       } catch (err) {
@@ -32,7 +32,7 @@ export default function GoalsPage() {
     if (!newGoal.title) return;
 
     try {
-      await fetch(`${BASE_URL}/goals`, {
+      await fetch(`${BASE_URL}/api/goals`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -41,7 +41,7 @@ export default function GoalsPage() {
       });
 
       // Refresh goals after adding
-      const res = await fetch(`${BASE_URL}/goals`);
+      const res = await fetch(`${BASE_URL}/api/goals`);
       const data = await res.json();
       setGoals(data);
 

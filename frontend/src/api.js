@@ -1,5 +1,3 @@
-const BASE_URL =
-  import.meta.env.VITE_API_URL ||
-  "https://smartmentor-project.onrender.com";
+const BASE_URL = import.meta.env.VITE_API_URL ?? "";
 
 export default BASE_URL;

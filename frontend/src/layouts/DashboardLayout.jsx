@@ -17,8 +17,8 @@ export default function DashboardLayout() {
       <Sidebar role={role} isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
       <div className="flex flex-col flex-1 w-full relative">
         <TopNavigation onMenuClick={() => setIsSidebarOpen(true)} />
-        <main className="h-full overflow-y-auto p-4 md:p-8 scroll-smooth bg-background dark:bg-gray-900">
-          <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
+        <main className="h-full overflow-y-auto px-4 md:px-6 py-4 md:py-6 scroll-smooth bg-background dark:bg-gray-900">
+          <div className="w-full space-y-6 md:space-y-8">
              <Outlet />
           </div>
         </main>

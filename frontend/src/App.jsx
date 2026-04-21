@@ -13,6 +13,7 @@ import Register from './pages/auth/Register';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import MentorDashboard from './pages/mentor/MentorDashboard';
+import MyStudentsPage from './pages/mentor/MyStudentsPage';
 import StudentDashboard from './pages/student/StudentDashboard';
 
 const FallbackRoute = () => {
@@ -40,6 +41,7 @@ function App() {
                 
                 {/* Mentor Routes */}
                 <Route path="/mentor" element={<MentorDashboard />} />
+                <Route path="/mentor/students" element={<MyStudentsPage />} />
                 
                 {/* Student Routes */}
                 <Route path="/student" element={<StudentDashboard />} />

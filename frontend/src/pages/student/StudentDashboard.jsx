@@ -1,316 +1,338 @@
-import React, { useState } from 'react';
-import { Award, BookOpen, Clock, Target, TrendingUp, Plus } from 'lucide-react';
+import React, { useEffect, useState, useCallback } from 'react';
+import {
+  Award, BookOpen, Clock, Target, TrendingUp, Plus,
+  AlertTriangle, Lightbulb, MessageSquare, UserPlus,
+} from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../../components/common/Modal';
-import BASE_URL from "../../api";
+import BASE_URL from '../../api';
 
 export default function StudentDashboard() {
-  const { data, updateAcademicRecord, updateGoalProgress } = useData();
   const { user } = useAuth();
+  const { savePerformance, requestMentor } = useData();
+
+  const [performance, setPerformance] = useState(null);
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [recommendations, setRecommendations] = useState([]);
+  const [myRequests, setMyRequests] = useState([]);
 
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   const [record, setRecord] = useState({ subject: '', score: '' });
-  const [goals, setGoals] = useState([]);
-  const [newGoal, setNewGoal] = useState("");
+  const [isAttModalOpen, setIsAttModalOpen] = useState(false);
+  const [attForm, setAttForm] = useState({ attendance: '', studyHours: '' });
 
-  // Real Feeling Data & Progress Animation state
-  const [usage, setUsage] = useState(0);
-  const [targetUsage, setTargetUsage] = useState(0);
-  const limit = 120;
-  export default function StudentDashboard() {
+  const [isMentorModalOpen, setIsMentorModalOpen] = useState(false);
+  const [mentorForm, setMentorForm] = useState({ preferredSubject: '', message: '' });
+  const [mentorErr, setMentorErr] = useState('');
 
-  // ✅ existing
-  const { data } = useData();
-  const { user } = useAuth();
+  const studentId = user?.id;
 
-  const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
-  const [record, setRecord] = useState({ subject: '', score: '' });
+  const fetchAll = useCallback(async () => {
+    if (!studentId) return;
+    const [perf, fb, rec, reqs] = await Promise.all([
+      fetch(`${BASE_URL}/api/performance/${studentId}`).then((r) => r.json()).catch(() => null),
+      fetch(`${BASE_URL}/api/feedback/${studentId}`).then((r) => r.json()).catch(() => []),
+      fetch(`${BASE_URL}/api/recommendations/${studentId}`).then((r) => r.json()).catch(() => []),
+      fetch(`${BASE_URL}/api/my-requests/${studentId}`).then((r) => r.json()).catch(() => []),
+    ]);
+    setPerformance(perf);
+    setFeedbacks(Array.isArray(fb) ? fb : []);
+    setRecommendations(Array.isArray(rec) ? rec : []);
+    setMyRequests(Array.isArray(reqs) ? reqs : []);
+  }, [studentId]);
 
-  // 🔥 ADD HERE (STEP 2 already)
-  const [goals, setGoals] = useState([]);
-  const [newGoal, setNewGoal] = useState("");
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  // 🔥 STEP 3 → ADD HERE
-  const fetchGoals = async () => {
-    try {
-      const res = await fetch(`${BASE_URL}/goals/${dataId}`);
-      const data = await res.json();
-      setGoals(data);
-    } catch (err) {
-      console.log(err);
-    }
-  };
+  const marks = Array.isArray(performance?.marks) ? performance.marks : [];
+  const attendance = performance?.attendance ?? 0;
+  const studyHours = performance?.study_hours ?? 0;
 
-  const handleAddGoal = async () => {
-    if (!newGoal) return;
-
-    await fetch(`${BASE_URL}/goals`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        student_id: dataId,
-        title: newGoal,
-      }),
-    });
-
-    setNewGoal("");
-    fetchGoals();
-  };
-
-  // 🔥 STEP 4 → ALSO HERE
-  useEffect(() => {
-    if (dataId) fetchGoals();
-  }, [dataId]);
-
-  // existing functions
-  const handleAddRecord = (...) => { ... }
-
-  return (
-    ...
-  )
-}
-
-  React.useEffect(() => {
-    // Real Feeling Data: Math.random()
-    const mockUsage = Math.floor(Math.random() * 120);
-    setTargetUsage(mockUsage);
-    
-    // Smooth delay for WOW animation effect
-    const timer = setTimeout(() => {
-      setUsage(mockUsage);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Connect Python Auth User to Mock Context User using Email
-  const contextUser = data.users.find(u => u.email === user?.email);
-  const dataId = contextUser ? contextUser.id : user?.id;
-
-  const myGoals = data.goals.filter(g => g.studentId === dataId);
-  const myFeedbacks = data.feedbacks.filter(f => f.studentId === dataId);
-  
-  const myMarksData = data.academicData.find(a => a.studentId === dataId && a.type === 'marks')?.data || [];
-  const myProgressData = data.academicData.find(a => a.studentId === dataId && a.type === 'progressOverTime')?.data || [
-    { name: 'W1', score: 0 }
-  ];
-
-  const handleAddRecord = (e) => {
-    e.preventDefault();
-    const updatedMarks = [...myMarksData, { subject: record.subject, score: Number(record.score) }];
-    updateAcademicRecord(dataId, 'marks', updatedMarks);
-    
-    // Auto-update progress over time (mocking a timeline shift)
-    const newProgressNode = { name: `W${myProgressData.length + 1}`, score: Number(record.score) };
-    updateAcademicRecord(dataId, 'progressOverTime', [...myProgressData, newProgressNode]);
-
-    setRecord({ subject: '', score: '' });
-    setIsRecordModalOpen(false);
-  };
-
-  const getAverageGrade = () => {
-    if (myMarksData.length === 0) return 'N/A';
-    const sum = myMarksData.reduce((acc, curr) => acc + curr.score, 0);
-    const avg = sum / myMarksData.length;
+  const avg = marks.length
+    ? Math.round(marks.reduce((a, m) => a + (Number(m.score) || 0), 0) / marks.length)
+    : 0;
+  const grade = (() => {
+    if (!marks.length) return 'N/A';
     if (avg >= 90) return 'A+';
     if (avg >= 80) return 'A';
     if (avg >= 70) return 'B';
     if (avg >= 60) return 'C';
     return 'D';
+  })();
+
+  const progressData = marks.map((m, i) => ({
+    name: m.subject || `#${i + 1}`,
+    score: Number(m.score) || 0,
+  }));
+
+  const handleAddRecord = async (e) => {
+    e.preventDefault();
+    const updatedMarks = [...marks, { subject: record.subject, score: Number(record.score) }];
+    await savePerformance({
+      student_id: studentId,
+      attendance, marks: updatedMarks, study_hours: studyHours,
+    });
+    setRecord({ subject: '', score: '' });
+    setIsRecordModalOpen(false);
+    fetchAll();
   };
 
-  const getMentorName = (mentorId) => {
-    return data.users.find(u => u.id === mentorId)?.name || 'Mentor';
+  const handleSaveAtt = async (e) => {
+    e.preventDefault();
+    await savePerformance({
+      student_id: studentId,
+      attendance: Number(attForm.attendance) || 0,
+      marks,
+      study_hours: Number(attForm.studyHours) || 0,
+    });
+    setIsAttModalOpen(false);
+    fetchAll();
   };
+
+  const hasPending = myRequests.some((r) => r.status === 'pending');
+
+  const handleRequestMentor = async (e) => {
+    e.preventDefault();
+    setMentorErr('');
+    const res = await requestMentor({
+      studentId,
+      preferredSubject: mentorForm.preferredSubject,
+      message: mentorForm.message,
+    });
+    if (res?.error) {
+      setMentorErr(res.error);
+      return;
+    }
+    setMentorForm({ preferredSubject: '', message: '' });
+    setIsMentorModalOpen(false);
+    fetchAll();
+  };
+
+  const recColor = (level) => ({
+    danger: 'bg-red-50 dark:bg-red-500/10 border-red-200 text-red-700 dark:text-red-300',
+    warning: 'bg-yellow-50 dark:bg-yellow-500/10 border-yellow-200 text-yellow-800 dark:text-yellow-300',
+    info: 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 text-blue-700 dark:text-blue-300',
+  }[level] || 'bg-gray-50 border-gray-200 text-gray-700');
 
   return (
-    <div className="space-y-8">
+    <div className="w-full space-y-6 md:space-y-8">
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Academic Overview</h1>
-          <p className="text-sm md:text-base text-gray-500 dark:text-gray-400 mt-1">Curating your path to scholarly excellence, {user?.name}.</p>
-          <div className="inline-block mt-3 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
-            <span className="text-sm font-medium text-gray-600 dark:text-gray-300 flex items-center gap-2">
-              Stay focused. You're doing great 💪
-            </span>
-          </div>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
+            Academic Overview
+          </h1>
+          <p className="text-sm md:text-base text-gray-500 dark:text-gray-400 mt-1">
+            Welcome back, {user?.name}.
+          </p>
         </div>
-        <div className="flex gap-3">
-          <div className="hidden md:flex bg-white dark:bg-gray-800 rounded-2xl px-4 py-2 items-center shadow-sm border border-gray-100 dark:border-gray-700/50">
-            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest mr-3">Success Rate</span>
-            <span className="text-xl font-bold text-primary">84%</span>
-          </div>
+        <div className="flex flex-wrap gap-2 md:gap-3">
+          <button
+            onClick={() => setIsMentorModalOpen(true)}
+            disabled={hasPending}
+            className="btn-primary flex items-center gap-2 disabled:opacity-60"
+            title={hasPending ? 'You already have a pending request' : 'Request a mentor'}
+          >
+            <UserPlus size={18} /> {hasPending ? 'Request Pending' : 'Request Mentor'}
+          </button>
+          <button
+            onClick={() => {
+              setAttForm({ attendance: String(attendance || ''), studyHours: String(studyHours || '') });
+              setIsAttModalOpen(true);
+            }}
+            className="btn-secondary flex items-center gap-2"
+          >
+            <Clock size={18} /> Update Attendance
+          </button>
           <button onClick={() => setIsRecordModalOpen(true)} className="btn-primary flex items-center gap-2">
             <Plus size={18} /> Update Marks
           </button>
         </div>
       </div>
 
-      {/* Real Feeling Data & Progress Bar Animation */}
-      <div className="card shadow-sm border border-gray-100 dark:border-gray-700/50">
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2 text-sm uppercase tracking-widest">
-            <Clock className="text-[#4A90E2]" size={16} /> Today's Focus Tracking
+      {/* Recommendations */}
+      {recommendations.length > 0 && (
+        <div className="card">
+          <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
+            <Lightbulb size={18} className="text-yellow-500" /> Recommendations for you
           </h3>
-          <div className="animate-pulse text-[10px] font-bold text-emerald-500 uppercase tracking-widest bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded-md">LIVE 📊</div>
-        </div>
-        
-        <div className="flex justify-between items-end mb-3">
-          <div>
-            <span className="text-4xl font-bold tracking-tight text-[#4A90E2]">{targetUsage > 0 ? usage : 0}</span>
-            <span className="text-sm font-medium text-gray-500 ml-1">mins</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {recommendations.map((r, i) => (
+              <div key={i} className={`border rounded-xl p-4 ${recColor(r.level)}`}>
+                <div className="flex items-start gap-2">
+                  <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-bold text-sm">{r.title}</p>
+                    <p className="text-xs mt-1 opacity-90">{r.message}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-          <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{limit}m Target</span>
         </div>
-        
-        <div className="w-full h-[6px] bg-[#eee] dark:bg-gray-700 rounded-[10px] overflow-hidden relative">
-          <div 
-            className="h-full bg-[#4A90E2] rounded-[10px] transition-all ease-out shadow-[0_0_10px_rgba(74,144,226,0.6)]"
-            style={{ 
-              width: `${(usage / limit) * 100}%`,
-              transitionDuration: '1500ms'
-            }} 
-          />
+      )}
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="card">
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Average Grade</p>
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{grade}</h2>
+          <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
+            <TrendingUp size={12} /> Based on {marks.length} record{marks.length === 1 ? '' : 's'}
+          </p>
+        </div>
+        <div className="card">
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Attendance</p>
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{attendance}%</h2>
+          <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2 mt-3">
+            <div
+              className={`h-2 rounded-full ${attendance < 75 ? 'bg-red-500' : 'bg-emerald-500'}`}
+              style={{ width: `${Math.min(attendance, 100)}%` }}
+            />
+          </div>
+        </div>
+        <div className="card">
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Study Hours</p>
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{studyHours}</h2>
+          <p className="text-xs text-gray-500 mt-2">This week</p>
+        </div>
+        <div className="card">
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Mentor Feedbacks</p>
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{feedbacks.length}</h2>
+          <p className="text-xs text-gray-500 mt-2">Total received</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="card bg-primary text-white border-0 shadow-lg shadow-primary/20 relative overflow-hidden flex flex-col justify-center">
-          {/* Abstract background shapes */}
-          <div className="absolute top-0 right-0 p-4 opacity-10 transform translate-x-4 -translate-y-4">
-            <Award size={120} />
-          </div>
-          <div className="absolute bottom-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl transform translate-x-10 translate-y-10" />
-          
-          <div className="relative z-10">
-            <p className="text-white/80 font-bold text-xs uppercase tracking-widest mb-2">Average Grade</p>
-            <h2 className="text-5xl font-bold tracking-tight mb-4">{getAverageGrade()}</h2>
-            <p className="text-sm text-white/90 leading-relaxed mb-4">
-              You've maintained excellent academic standing. Keep the momentum!
-            </p>
-            <div className="inline-flex items-center gap-2 text-xs font-semibold bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-lg">
-              <TrendingUp size={14} />
-              <span>Based on {myMarksData.length} records</span>
-            </div>
-          </div>
-        </div>
-        
-        <div className="card md:col-span-3">
-          <h3 className="text-lg font-semibold mb-4">Performance Timeline</h3>
+      {/* Chart + Feedbacks */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+        <div className="card lg:col-span-2">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Award className="text-primary" size={18} /> Performance by Subject
+          </h3>
           <div className="w-full h-[300px]">
-            {myProgressData && myProgressData.length > 0 ? (
+            {progressData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={myProgressData}>
+                <LineChart data={progressData}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#6b7280'}} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#6b7280'}} domain={['dataMin - 10', 'dataMax + 10']} />
-                  <Tooltip cursor={{ stroke: '#e5e7eb', strokeWidth: 1, strokeDasharray: '5 5' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} domain={[0, 100]} />
+                  <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
                   <Line type="monotone" dataKey="score" stroke="#6366F1" strokeWidth={3} dot={{ strokeWidth: 3, r: 4, fill: '#fff' }} activeDot={{ r: 6 }} />
                 </LineChart>
               </ResponsiveContainer>
             ) : (
               <div className="flex flex-col items-center justify-center h-full w-full bg-gray-50 dark:bg-gray-800/50 rounded-xl">
-                <p className="text-gray-500 italic text-sm">No data available</p>
+                <BookOpen className="text-gray-400 mb-2" size={32} />
+                <p className="text-gray-500 italic text-sm">No marks yet — add your first record to see trends.</p>
               </div>
             )}
           </div>
         </div>
+
+        <div className="card">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <MessageSquare size={18} className="text-purple-500" /> Mentor Feedback
+          </h3>
+          <div className="space-y-3 max-h-[300px] overflow-y-auto">
+            {feedbacks.length === 0 && (
+              <p className="text-sm italic text-gray-500">No feedback received yet.</p>
+            )}
+            {feedbacks.map((f) => (
+              <div key={f.id} className="p-3 rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/40">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-sm font-bold text-gray-900 dark:text-white">{f.mentor_name || 'Mentor'}</p>
+                  {f.rating ? <span className="text-xs text-yellow-500">{'★'.repeat(f.rating)}</span> : null}
+                </div>
+                <p className="text-sm text-gray-700 dark:text-gray-300">"{f.feedback_text}"</p>
+                <p className="text-[10px] text-gray-400 uppercase tracking-wider mt-2">
+                  {f.created_at && new Date(f.created_at).toLocaleDateString()}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="card h-96 overflow-y-auto">
-          <div className="flex items-center justify-between mb-4 pb-2 border-b dark:border-gray-700/50">
-            <h3 className="text-lg font-semibold flex items-center gap-2"><Target className="text-emerald-500" size={20} /> My Goals</h3>
-          </div>
-          <div className="space-y-4">
-            {myGoals.map(goal => (
-              <div key={goal.id} className="p-4 bg-gray-50/50 dark:bg-gray-800/30 border border-gray-100 dark:border-gray-700/50 rounded-2xl">
-                <div className="flex justify-between items-start mb-3">
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className={`w-2 h-2 rounded-full ${goal.progress === 100 ? 'bg-emerald-500' : 'bg-primary'}`} />
-                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-                        {goal.progress === 100 ? 'Completed' : 'High Priority'}
+      {/* My Requests */}
+      {myRequests.length > 0 && (
+        <div className="card">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Target size={18} className="text-emerald-500" /> My Mentor Requests
+          </h3>
+          <div className="overflow-x-auto w-full">
+            <table className="w-full text-sm">
+              <thead className="text-xs uppercase tracking-wider text-gray-400">
+                <tr><th className="text-left py-2">Subject</th><th className="text-left py-2">Message</th><th className="text-left py-2">Status</th><th className="text-left py-2">Date</th></tr>
+              </thead>
+              <tbody>
+                {myRequests.map((r) => (
+                  <tr key={r.id} className="border-t border-gray-100 dark:border-gray-700">
+                    <td className="py-3 font-medium">{r.preferred_subject}</td>
+                    <td className="py-3 text-gray-500">{r.message || '—'}</td>
+                    <td className="py-3">
+                      <span className={`badge ${r.status === 'assigned' ? 'bg-emerald-100 text-emerald-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                        {r.status}
                       </span>
-                    </div>
-                    <h4 className="font-bold text-gray-900 dark:text-white text-base">{goal.title}</h4>
-                  </div>
-                  <span className={`badge ${goal.progress === 100 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20' : 'bg-primary/10 text-primary dark:bg-primary/20'}`}>
-                    {goal.status}
-                  </span>
-                </div>
-                
-                <div className="bg-white dark:bg-gray-800 p-3 rounded-xl mb-4 border border-gray-100 dark:border-gray-700/50 text-sm text-gray-500 italic">
-                  Focus on completion before the next mentoring session.
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <div className="flex-1">
-                    <div className="flex justify-between mb-1 text-xs font-bold text-gray-400">
-                      <span>PROGRESS</span>
-                      <span className="text-primary">{goal.progress}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 flex-1">
-                      <div className={`h-2 rounded-full transition-all ${goal.progress === 100 ? 'bg-emerald-500' : 'bg-primary'}`} style={{ width: `${goal.progress}%` }}></div>
-                    </div>
-                  </div>
-                  <select 
-                    className="input-field !py-0.5 !px-1 h-6 text-xs w-16"
-                    value={goal.progress}
-                    onChange={(e) => updateGoalProgress(goal.id, Number(e.target.value))}
-                  >
-                    {[0, 25, 50, 75, 100].map(val => (
-                      <option key={val} value={val}>{val}%</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            ))}
-            {myGoals.length === 0 && <p className="text-gray-500 text-sm italic">No goals assigned yet.</p>}
+                    </td>
+                    <td className="py-3 text-gray-500">{r.created_at && new Date(r.created_at).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
-        
-        <div className="card h-96 overflow-y-auto">
-          <div className="flex items-center justify-between mb-4 pb-2 border-b dark:border-gray-700/50">
-            <h3 className="text-lg font-semibold flex items-center gap-2"><Clock className="text-purple-500" size={20} /> Mentor Feedback</h3>
-          </div>
-          <div className="space-y-4">
-            {myFeedbacks.sort((a,b) => new Date(b.date) - new Date(a.date)).map(feedback => (
-              <div key={feedback.id} className="p-5 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/50 rounded-2xl relative shadow-sm">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center text-secondary font-bold text-sm">
-                    {getMentorName(feedback.mentorId)[0]}
-                  </div>
-                  <div>
-                    <p className="font-bold text-sm text-gray-900 dark:text-white">{getMentorName(feedback.mentorId)}</p>
-                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">{new Date(feedback.date).toLocaleDateString()}</p>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed bg-gray-50/50 dark:bg-gray-900/50 p-3 rounded-xl">"{feedback.text}"</p>
-              </div>
-            ))}
-            {myFeedbacks.length === 0 && <p className="text-gray-500 text-sm italic">No feedback received yet.</p>}
-          </div>
-        </div>
-      </div>
+      )}
 
+      {/* Modals */}
       <Modal isOpen={isRecordModalOpen} onClose={() => setIsRecordModalOpen(false)} title="Add Academic Record">
         <form onSubmit={handleAddRecord} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Subject / Module Name</label>
-            <input required type="text" className="input-field" value={record.subject} onChange={e => setRecord({...record, subject: e.target.value})} placeholder="e.g. Mathematics" />
+            <label className="block text-sm font-medium mb-1">Subject</label>
+            <input required type="text" className="input-field" value={record.subject}
+              onChange={(e) => setRecord({ ...record, subject: e.target.value })} placeholder="e.g. Mathematics" />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Score / Percentage</label>
-            <input required type="number" min="0" max="100" className="input-field" value={record.score} onChange={e => setRecord({...record, score: e.target.value})} placeholder="85" />
+            <label className="block text-sm font-medium mb-1">Score (0-100)</label>
+            <input required type="number" min="0" max="100" className="input-field" value={record.score}
+              onChange={(e) => setRecord({ ...record, score: e.target.value })} placeholder="85" />
           </div>
-          <button type="submit" className="btn-primary w-full mt-4">Save Record</button>
+          <button type="submit" className="btn-primary w-full">Save Record</button>
         </form>
       </Modal>
 
+      <Modal isOpen={isAttModalOpen} onClose={() => setIsAttModalOpen(false)} title="Update Attendance & Hours">
+        <form onSubmit={handleSaveAtt} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Attendance (%)</label>
+            <input required type="number" min="0" max="100" className="input-field" value={attForm.attendance}
+              onChange={(e) => setAttForm({ ...attForm, attendance: e.target.value })} placeholder="e.g. 85" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Study Hours (this week)</label>
+            <input required type="number" min="0" className="input-field" value={attForm.studyHours}
+              onChange={(e) => setAttForm({ ...attForm, studyHours: e.target.value })} placeholder="e.g. 20" />
+          </div>
+          <button type="submit" className="btn-primary w-full">Save</button>
+        </form>
+      </Modal>
+
+      <Modal isOpen={isMentorModalOpen} onClose={() => setIsMentorModalOpen(false)} title="Request a Mentor">
+        <form onSubmit={handleRequestMentor} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Preferred Subject</label>
+            <input required type="text" className="input-field" value={mentorForm.preferredSubject}
+              onChange={(e) => setMentorForm({ ...mentorForm, preferredSubject: e.target.value })} placeholder="e.g. Calculus" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Message (optional)</label>
+            <textarea className="input-field min-h-[100px]" value={mentorForm.message}
+              onChange={(e) => setMentorForm({ ...mentorForm, message: e.target.value })} placeholder="Tell us what you'd like help with..." />
+          </div>
+          {mentorErr && <p className="text-sm text-red-500">{mentorErr}</p>}
+          <button type="submit" className="btn-primary w-full">Submit Request</button>
+        </form>
+      </Modal>
     </div>
   );
 }
