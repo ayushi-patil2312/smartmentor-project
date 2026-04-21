@@ -18,20 +18,14 @@ CORS(app, supports_credentials=True)
 
 def get_db():
     if 'db' not in g:
-        database_url = os.getenv("DATABASE_URL")
-        if database_url:
-            g.db = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
-        else:
-            g.db = psycopg2.connect(
-                host=os.getenv("PGHOST", "localhost"),
-                database=os.getenv("PGDATABASE", "postgres"),
-                user=os.getenv("PGUSER", "postgres"),
-                password=os.getenv("PGPASSWORD", "password"),
-                port=os.getenv("PGPORT", "5432"),
-                cursor_factory=RealDictCursor,
-            )
-    return g.db
+        database_url = os.environ.get("DATABASE_URL")
 
+        if not database_url:
+            raise Exception("DATABASE_URL is missing in environment variables")
+
+        g.db = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+
+    return g.db
 
 @app.teardown_appcontext
 def close_db(error):
