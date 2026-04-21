@@ -35,7 +35,14 @@ def close_db(error):
 
 
 def init_db():
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"), cursor_factory=RealDictCursor)
+    database_url = os.environ.get("DATABASE_URL")
+
+    if not database_url:
+        print("⚠️ DATABASE_URL not found, skipping DB init")
+        return
+
+    conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+
     with conn.cursor() as cur:
         cur.execute("""
             CREATE TABLE IF NOT EXISTS users (
@@ -78,8 +85,6 @@ def init_db():
                 study_hours INTEGER DEFAULT 0,
                 updated_at TIMESTAMP DEFAULT NOW()
             );
-        """)
-        cur.execute("""
             CREATE TABLE IF NOT EXISTS notifications (
                 id SERIAL PRIMARY KEY,
                 user_id INTEGER NOT NULL,
@@ -89,13 +94,14 @@ def init_db():
                 created_at TIMESTAMP DEFAULT NOW()
             );
         """)
-        # Migration: add mentor_id column on existing users table if missing
+
         cur.execute("""
             ALTER TABLE users ADD COLUMN IF NOT EXISTS mentor_id INTEGER;
         """)
-        conn.commit()
-    conn.close()
 
+        conn.commit()
+
+    conn.close()
 
 with app.app_context():
     try:
@@ -106,7 +112,10 @@ with app.app_context():
 
 @app.errorhandler(Exception)
 def handle_exception(e):
-    return jsonify({"error": str(e)}), 500
+    return jsonify({
+    "status": "error",
+    "message": str(e)
+}), 500
 
 
 # ───── Static / SPA ─────
@@ -125,45 +134,102 @@ def health():
 @app.route('/register', methods=['POST'])
 def register():
     data = request.json or {}
+
     name = data.get('name')
     email = data.get('email')
     password = data.get('password')
     role = data.get('role', 'student')
+
     if not name or not email or not password:
-        return jsonify({"error": "Name, email and password required"}), 400
+        return jsonify({
+            "status": "error",
+            "message": "Name, email and password are required"
+        }), 400
 
-    conn = get_db()
-    with conn.cursor() as cur:
-        cur.execute("SELECT id FROM users WHERE email=%s", (email,))
-        if cur.fetchone():
-            return jsonify({"error": "User already exists"}), 400
-        cur.execute(
-            "INSERT INTO users (name, email, password, role) VALUES (%s, %s, %s, %s) RETURNING *",
-            (name, email, password, role),
-        )
-        new_user = cur.fetchone()
-        conn.commit()
-    return jsonify({"status": "success", "user": new_user}), 201
+    try:
+        conn = get_db()
 
+        with conn.cursor() as cur:
+            # 🔍 Check if user exists
+            cur.execute("SELECT id FROM users WHERE email=%s", (email,))
+            if cur.fetchone():
+                return jsonify({
+                    "status": "error",
+                    "message": "Email already exists"
+                }), 400
 
+            # ➕ Insert user
+            cur.execute(
+                "INSERT INTO users (name, email, password, role) VALUES (%s, %s, %s, %s) RETURNING id, name, email, role",
+                (name, email, password, role),
+            )
+
+            new_user = cur.fetchone()
+            conn.commit()
+
+        return jsonify({
+            "status": "success",
+            "user": new_user
+        }), 201
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
 @app.route('/api/login', methods=['POST'])
 @app.route('/login', methods=['POST'])
 def login():
     data = request.json or {}
+
     email = data.get('email')
     password = data.get('password')
+
+    # ❗ Validation
     if not email or not password:
-        return jsonify({"error": "Email and password required"}), 400
+        return jsonify({
+            "status": "error",
+            "message": "Email and password required"
+        }), 400
 
-    conn = get_db()
-    with conn.cursor() as cur:
-        cur.execute("SELECT * FROM users WHERE email=%s AND password=%s", (email, password))
-        user = cur.fetchone()
-    if user:
-        return jsonify({"status": "success", "user": user}), 200
-    return jsonify({"error": "Invalid credentials", "status": "error"}), 401
+    try:
+        conn = get_db()
 
+        with conn.cursor() as cur:
+            # 🔍 Check if account exists
+            cur.execute("SELECT * FROM users WHERE email=%s", (email,))
+            user = cur.fetchone()
 
+            if not user:
+                return jsonify({
+                    "status": "error",
+                    "message": "Account does not exist"
+                }), 404
+
+            # 🔐 Check password
+            if user["password"] != password:
+                return jsonify({
+                    "status": "error",
+                    "message": "Incorrect password"
+                }), 401
+
+            # ✅ Success
+            return jsonify({
+                "status": "success",
+                "user": {
+                    "id": user["id"],
+                    "name": user["name"],
+                    "email": user["email"],
+                    "role": user["role"]
+                }
+            }), 200
+
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
 @app.route('/api/reset-password', methods=['POST'])
 def reset_password():
     data = request.json or {}
@@ -177,9 +243,10 @@ def reset_password():
         row = cur.fetchone()
         conn.commit()
     if not row:
-        return jsonify({"error": "User not found"}), 404
-    return jsonify({"status": "success"})
-
+        return jsonify({
+    "status": "error",
+    "message": "Email and new password required"
+}), 400
 
 # ───── Users ─────
 @app.route('/api/users')
@@ -198,7 +265,10 @@ def add_user():
     data = request.json or {}
     name, email = data.get('name'), data.get('email')
     if not name or not email:
-        return jsonify({"error": "Name and email required"}), 400
+        return jsonify({
+    "status": "error",
+    "message": "Name and email required"
+}), 400
     conn = get_db()
     with conn.cursor() as cur:
         cur.execute("SELECT id FROM users WHERE email=%s", (email,))
@@ -241,7 +311,10 @@ def add_goal():
     student_id = data.get('student_id')
     title = data.get('title')
     if not student_id or not title:
-        return jsonify({"error": "student_id and title required"}), 400
+        return jsonify({
+    "status": "error",
+    "message": "student_id and title required"
+}), 400
     conn = get_db()
     with conn.cursor() as cur:
         cur.execute(
@@ -633,7 +706,10 @@ def spa_fallback(path):
             return app.send_static_file(path)
         if os.path.exists(os.path.join(app.static_folder, 'index.html')):
             return app.send_static_file('index.html')
-    return jsonify({"error": "Not found"}), 404
+    return jsonify({
+    "status": "error",
+    "message": "Not found"
+}), 404
 
 
 if __name__ == '__main__':
